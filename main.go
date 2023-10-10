@@ -14,6 +14,10 @@ func main() {
 	}
 
 	gui := NewChessGUI(window, game)
+
+	game.Move(NewMove(8, 16))
+	gui.refreshGrid()
+	game.Move(NewMove(16, 24))
 	gui.refreshGrid()
 
 	window.ShowAndRun()

@@ -81,5 +81,5 @@ func (p Piece) toSvg() *fyne.StaticResource {
 		return resourceBlackPawnSvg
 	}
 
-	panic("piece to ressource mapping not defined")
+	return nil
 }
