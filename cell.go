@@ -29,7 +29,7 @@ func (cell Cell) toNotation() string {
 		letter += "h"
 	}
 
-	return letter + strconv.Itoa(int(cell)/8+1)
+	return letter + strconv.Itoa(8-int(cell)/8)
 }
 
 func cellIdxToCoordinates(cellIdx int) (int, int) {

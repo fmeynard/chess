@@ -26,14 +26,14 @@ func fenToPosition(fenStr string) (*Position, error) {
 			blankCount, err := strconv.Atoi(string(fendPieceId))
 			if err == nil {
 				for x := 0; x < blankCount; x++ {
-					board[NewCell(i, j+x+incJ)] = NoPiece
+					board[NewCell(7-i, 7-j+x+incJ)] = NoPiece
 				}
 				incJ += blankCount
 
 				continue
 			}
 
-			board[NewCell(i, j+incJ)] = NewPiece(string(fendPieceId))
+			board[NewCell(7-i, 7-j+incJ)] = NewPiece(string(fendPieceId))
 			// board[Cell{i, j + incJ}] = NewPiece(string(fendPieceId))
 		}
 	}
