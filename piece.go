@@ -22,6 +22,22 @@ const (
 	WhitePawn
 )
 
+const (
+	NoPieceColor = iota
+	PieceColorWhite
+	PieceColorBack
+)
+
+const (
+	NoPieceType = iota
+	PieceTypeRook
+	PieceTypeKnight
+	PieceTypeBishop
+	PieceTypeQueen
+	PieceTypeKing
+	PieceTypePawn
+)
+
 func NewPiece(fenId string) Piece {
 	switch fenId {
 	case "r":
@@ -82,4 +98,45 @@ func (p Piece) toSvg() *fyne.StaticResource {
 	}
 
 	return nil
+}
+
+func (p Piece) toColor() int {
+	pVal := int(p)
+	if pVal == 0 {
+		return NoPieceColor
+	}
+
+	if pVal <= 6 {
+		return PieceColorBack
+	}
+
+	return PieceColorWhite
+}
+
+func (p Piece) toPieceType() int {
+	if p == WhitePawn || p == BlackPawn {
+		return PieceTypePawn
+	}
+
+	if p == WhiteRook || p == BlackRook {
+		return PieceTypeRook
+	}
+
+	if p == WhiteKnight || p == BlackKnight {
+		return PieceTypeKnight
+	}
+
+	if p == WhiteBishop || p == BlackBishop {
+		return PieceTypeBishop
+	}
+
+	if p == WhiteQueen || p == BlackQueen {
+		return PieceTypeQueen
+	}
+
+	if p == WhiteKing || p == BlackKing {
+		return PieceTypeKing
+	}
+
+	return NoPieceType
 }

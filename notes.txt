@@ -1,0 +1,18 @@
+AttackMap 
+- alpha beta pruning works better with 'captures moves first' approach,
+  as its more likely to enhance position, especially with sorting captures moving by 
+  Victim Score / Attack Score ratio
+- The idea is to avoid reduce the cost of searching for captures moves, but to cross-check for
+- maintain for each square list of pieces/idx that attack it
+- when moving a piece, all sliders attackers need to be revaluated to update map of newly exposed squares
+- new position will also potentially block sliders from attacking some squares
+- can this process be speedup by pre-computing all possibles attackes ( by slide type ) 
+
+{
+    - sliders are always blocked 
+    - Knights moves can be calculed easily 
+}
+=> if for every square we have a 'closest neighbor by direction' this will speedup the update of the attacking map
+
+- new position can hide pieces from sliders : 
+- new poistion can reveal pieces to sliders 

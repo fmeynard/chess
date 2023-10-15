@@ -1,13 +1,18 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+)
+
+var (
+	WhiteSqBgColor    = color.White
+	BlackSqBgColor    = color.Gray{0x30}
+	PossibleSqBgColor = color.NRGBA{0, 0xff, 0, 0x28}
 )
 
 type ChessGUI struct {
@@ -23,7 +28,6 @@ type UIPiece struct {
 }
 
 func (pos *Position) NewUIPiece(gui *ChessGUI, cell Cell) *UIPiece {
-
 	uiPiece := &UIPiece{cell: cell, gui: gui}
 	uiPiece.ExtendBaseWidget(uiPiece)
 	currentPiece := pos.board[cell]
@@ -34,7 +38,18 @@ func (pos *Position) NewUIPiece(gui *ChessGUI, cell Cell) *UIPiece {
 }
 
 func (uiPiece *UIPiece) Tapped(event *fyne.PointEvent) {
-	fmt.Println(uiPiece.cell.toNotation())
+	// fmt.Println(uiPiece.cell.toNotation())
+
+	// currentPiece := uiPiece.gui.game.currentPos.board[uiPiece.cell]
+	// fmt.Println("Current piece : ", currentPiece, int(uiPiece.cell))
+
+	// if currentPiece.toPieceType() == PieceTypePawn {
+	// 	pMoves := pawnPossiblesMoves(uiPiece.gui.game.currentPos, int(uiPiece.cell))
+	// 	r, c := cellIdxToCoordinates(int(uiPiece.cell))
+	// 	fmt.Println(int(uiPiece.cell), pMoves, r, c)
+
+	// 	// img := cell.(*fyne.Container).Objects[1].(*UIPiece)
+	// }
 }
 
 var dragStartIdx int = -1
@@ -44,6 +59,23 @@ var dragEndPos fyne.Position
 func (uiPiece *UIPiece) Dragged(event *fyne.DragEvent) {
 	dragStartIdx = int(uiPiece.cell)
 	dragEndPos = event.Position
+
+	currentPiece := uiPiece.gui.game.currentPos.board[uiPiece.cell]
+
+	var pMoves []int
+	if currentPiece.toPieceType() == PieceTypePawn {
+		pMoves = pawnPossiblesMoves(
+			uiPiece.gui.game.currentPos,
+			int(uiPiece.cell),
+			currentPiece.toColor() == PieceColorWhite,
+		)
+	}
+
+	for _, cMove := range pMoves {
+		cellRec := uiPiece.gui.gameContainer.Objects[cMove].(*fyne.Container).Objects[0].(*canvas.Rectangle)
+		cellRec.FillColor = PossibleSqBgColor
+		cellRec.Refresh()
+	}
 }
 
 func (uiPiece *UIPiece) DragEnd() {
@@ -67,7 +99,10 @@ func (uiPiece *UIPiece) DragEnd() {
 	}
 
 	newIdx := newRow*8 + newCol
-	uiPiece.gui.game.Move(NewMove(dragStartIdx, newIdx))
+	if dragStartIdx != newIdx {
+		uiPiece.gui.game.Move(NewMove(dragStartIdx, newIdx))
+	}
+
 	uiPiece.gui.refreshGrid()
 }
 
@@ -80,14 +115,10 @@ func NewChessGUI(window fyne.Window, game *Game) *ChessGUI {
 	grid := container.NewGridWithColumns(8)
 
 	for i := 0; i < 64; i++ {
-		r, c := cellIdxToCoordinates(i)
-
-		cell := canvas.NewRectangle(color.Gray{0x30})
-		if r%2 != c%2 {
-			cell.FillColor = color.White
-		}
-
-		grid.Add(container.NewStack(cell, game.currentPos.NewUIPiece(gui, Cell(i))))
+		grid.Add(container.NewStack(
+			canvas.NewRectangle(nil),
+			game.currentPos.NewUIPiece(gui, Cell(i))),
+		)
 	}
 
 	window.SetContent(grid)
@@ -101,6 +132,15 @@ func NewChessGUI(window fyne.Window, game *Game) *ChessGUI {
 func (ui *ChessGUI) refreshGrid() {
 	for i, cell := range ui.gameContainer.Objects {
 		img := cell.(*fyne.Container).Objects[1].(*UIPiece)
+		bgCell := cell.(*fyne.Container).Objects[0].(*canvas.Rectangle)
+
+		r, c := cellIdxToCoordinates(i)
+
+		bgCell.FillColor = BlackSqBgColor
+		if r%2 != c%2 {
+			bgCell.FillColor = WhiteSqBgColor
+		}
+
 		p := ui.game.currentPos.board[Cell(i)]
 		if p == NoPiece {
 			img.Resource = nil
