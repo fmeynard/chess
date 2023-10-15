@@ -1,58 +1,85 @@
 package main
 
-func yolo(isWhite bool) (map[int][]int, map[int][]int) {
-	normalMovesMap := make(map[int][]int)
-	capturesMovesMap := make(map[int][]int)
+var (
+	whitePawnNormalMovesMap  = make(map[int][]int)
+	blackPawnNormalMovesMap  = make(map[int][]int)
+	whitePawnCaptureMovesMap = make(map[int][]int)
+	blackPawnCaptureMovesMap = make(map[int][]int)
+)
 
+func generateBaseMoves() {
+	generatePawnMoves()
+}
+
+func generatePawnMoves() {
 	for i := 0; i < 64; i++ {
 		r, c := cellIdxToCoordinates(i)
 
-		if isWhite {
-			if r == 6 {
-				normalMovesMap[i] = append(normalMovesMap[i], i-8, i-16)
-			} else {
-				normalMovesMap[i] = append(normalMovesMap[i], i-8)
-			}
+		if r == 1 {
+			whitePawnNormalMovesMap[i] = append(whitePawnNormalMovesMap[i], i-8)
+			blackPawnNormalMovesMap[i] = append(blackPawnNormalMovesMap[i], i+8)
+		} else if r == 6 {
+			whitePawnNormalMovesMap[i] = append(whitePawnNormalMovesMap[i], i-8)
+			blackPawnNormalMovesMap[i] = append(blackPawnNormalMovesMap[i], i+8)
 		} else {
-			if r == 1 {
-				normalMovesMap[i] = append(normalMovesMap[i], i+8)
-			} else {
-				normalMovesMap[i] = append(normalMovesMap[i], i+8, i+16)
+			if r != 7 {
+				blackPawnNormalMovesMap[i] = append(blackPawnNormalMovesMap[i], i+8)
+			}
+			if r != 0 {
+				whitePawnNormalMovesMap[i] = append(whitePawnNormalMovesMap[i], i-8)
 			}
 		}
 
 		if c == 0 {
-			if isWhite {
-				capturesMovesMap[i] = append(capturesMovesMap[i], i-7)
-			} else {
-				capturesMovesMap[i] = append(capturesMovesMap[i], i+9)
+			if r != 0 {
+				whitePawnCaptureMovesMap[i] = append(whitePawnCaptureMovesMap[i], i-7)
+			}
+			if r != 7 {
+				blackPawnCaptureMovesMap[i] = append(blackPawnCaptureMovesMap[i], i+9)
 			}
 		} else if c == 7 {
-			if isWhite {
-				capturesMovesMap[i] = append(capturesMovesMap[i], i+-9)
-			} else {
-				capturesMovesMap[i] = append(capturesMovesMap[i], i+7)
+			if r != 0 {
+				whitePawnCaptureMovesMap[i] = append(whitePawnCaptureMovesMap[i], i-9)
+			}
+			if r != 7 {
+				blackPawnCaptureMovesMap[i] = append(blackPawnCaptureMovesMap[i], i+7)
 			}
 		} else {
-			if isWhite {
-				capturesMovesMap[i] = append(capturesMovesMap[i], i+-7, i+-9)
-			} else {
-				capturesMovesMap[i] = append(capturesMovesMap[i], i+7, i+9)
+			if r != 0 {
+				whitePawnCaptureMovesMap[i] = append(whitePawnCaptureMovesMap[i], i-7, i-9)
+			}
+			if r != 7 {
+				blackPawnCaptureMovesMap[i] = append(blackPawnCaptureMovesMap[i], i+7, i+9)
 			}
 		}
 	}
-
-	return normalMovesMap, capturesMovesMap
 }
 
 func pawnPossiblesMoves(pos *Position, pieceToMoveIdx int, isWhite bool) []int {
-	normalMovesMap, capturesMovesMap := yolo(true)
+	normalMovesMap := blackPawnNormalMovesMap
+	capturesMovesMap := blackPawnCaptureMovesMap
+	if isWhite {
+		normalMovesMap = whitePawnNormalMovesMap
+		capturesMovesMap = whitePawnCaptureMovesMap
+	}
 
 	moves := []int{}
 	for _, pMove := range normalMovesMap[pieceToMoveIdx] {
 		if pos.board[Cell(pMove)] == NoPiece {
 			moves = append(moves, pMove)
 		}
+	}
+
+	r, _ := cellIdxToCoordinates(pieceToMoveIdx)
+	if r == 6 &&
+		isWhite &&
+		pos.board[Cell(pieceToMoveIdx-16)] == NoPiece &&
+		pos.board[Cell(pieceToMoveIdx-8)] == NoPiece {
+		moves = append(moves, pieceToMoveIdx-16)
+	} else if r == 1 && !isWhite &&
+		pos.board[Cell(pieceToMoveIdx+16)] == NoPiece &&
+		pos.board[Cell(pieceToMoveIdx+8)] == NoPiece {
+		moves = append(moves, pieceToMoveIdx+16)
 	}
 
 	for _, pMove := range capturesMovesMap[pieceToMoveIdx] {
@@ -68,4 +95,16 @@ func pawnPossiblesMoves(pos *Position, pieceToMoveIdx int, isWhite bool) []int {
 	// }
 
 	return moves
+}
+
+func (piece Piece) possibleMoves(pieceIdx int, pos *Position) []int {
+	if piece.toPieceType() == PieceTypePawn {
+		return pawnPossiblesMoves(
+			pos,
+			pieceIdx,
+			piece.toColor() == PieceColorWhite,
+		)
+	}
+
+	return []int{}
 }

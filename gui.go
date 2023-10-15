@@ -60,17 +60,10 @@ func (uiPiece *UIPiece) Dragged(event *fyne.DragEvent) {
 	dragStartIdx = int(uiPiece.cell)
 	dragEndPos = event.Position
 
-	currentPiece := uiPiece.gui.game.currentPos.board[uiPiece.cell]
-
-	var pMoves []int
-	if currentPiece.toPieceType() == PieceTypePawn {
-		pMoves = pawnPossiblesMoves(
-			uiPiece.gui.game.currentPos,
-			int(uiPiece.cell),
-			currentPiece.toColor() == PieceColorWhite,
-		)
-	}
-
+	pMoves := uiPiece.gui.game.currentPos.board[uiPiece.cell].possibleMoves(
+		int(uiPiece.cell),
+		uiPiece.gui.game.currentPos,
+	)
 	for _, cMove := range pMoves {
 		cellRec := uiPiece.gui.gameContainer.Objects[cMove].(*fyne.Container).Objects[0].(*canvas.Rectangle)
 		cellRec.FillColor = PossibleSqBgColor

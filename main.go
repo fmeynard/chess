@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"fyne.io/fyne/v2/app"
 )
 
@@ -12,6 +14,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("--- start moves generation ---")
+	generateBaseMoves()
+	fmt.Println("--- end moves generation ---")
 
 	gui := NewChessGUI(window, game)
 
