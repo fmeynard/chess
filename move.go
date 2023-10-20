@@ -5,10 +5,88 @@ var (
 	blackPawnNormalMovesMap  = make(map[int][]int)
 	whitePawnCaptureMovesMap = make(map[int][]int)
 	blackPawnCaptureMovesMap = make(map[int][]int)
+	knightMoves              = make(map[int][]int)
+	diagonalSouthEastMoves   = make(map[int][]int)
+	diagonalSouthWestMoves   = make(map[int][]int)
+	diagonalNorthEastMoves   = make(map[int][]int)
+	diagonalNorthWestMoves   = make(map[int][]int)
 )
 
 func generateBaseMoves() {
 	generatePawnMoves()
+	generateKnightMoves()
+	generateDiagonalSliderMoves()
+}
+
+func generateDiagonalSliderMoves() {
+	for i := 0; i < 64; i++ {
+		r, c := cellIdxToCoordinates(i)
+
+		inc := 1
+		for y := 1; r+y < 8; y++ {
+			if c+inc < 8 {
+				diagonalSouthEastMoves[i] = append(diagonalSouthEastMoves[i], i+(y*8)+inc)
+			}
+
+			if c-inc >= 0 {
+				diagonalSouthWestMoves[i] = append(diagonalSouthWestMoves[i], i+(y*8)-inc)
+			}
+
+			inc++
+		}
+
+		inc = 1
+		for y := 1; r-y >= 0; y++ {
+			if c+inc < 8 {
+				diagonalNorthEastMoves[i] = append(diagonalNorthEastMoves[i], i-(y*8)+inc)
+			}
+
+			if c-inc >= 0 {
+				diagonalNorthWestMoves[i] = append(diagonalNorthWestMoves[i], i-(y*8)-inc)
+			}
+
+			inc++
+		}
+	}
+}
+
+func generateKnightMoves() {
+	for i := 0; i < 64; i++ {
+		r, c := cellIdxToCoordinates(i)
+
+		// top left
+		if r-2 >= 0 && c-1 >= 0 {
+			knightMoves[i] = append(knightMoves[i], i-17)
+		}
+		// top right
+		if r-2 >= 0 && c+1 <= 7 {
+			knightMoves[i] = append(knightMoves[i], i-15)
+		}
+		// bottom left
+		if r+2 <= 7 && c-1 >= 0 {
+			knightMoves[i] = append(knightMoves[i], i+17)
+		}
+		// bottom right
+		if r+2 <= 7 && c+1 <= 7 {
+			knightMoves[i] = append(knightMoves[i], i+15)
+		}
+
+		// left top
+		if c-2 >= 0 && r-1 >= 0 {
+			knightMoves[i] = append(knightMoves[i], i-10)
+		}
+		// left bottom
+		if c-2 >= 0 && r+1 <= 7 {
+			knightMoves[i] = append(knightMoves[i], i+6)
+		}
+		// right top
+		if c+2 <= 7 && r-1 >= 0 {
+			knightMoves[i] = append(knightMoves[i], i-6)
+		}
+		if c+2 <= 7 && r+1 <= 7 {
+			knightMoves[i] = append(knightMoves[i], i+10)
+		}
+	}
 }
 
 func generatePawnMoves() {
@@ -55,7 +133,8 @@ func generatePawnMoves() {
 	}
 }
 
-func pawnPossiblesMoves(pos *Position, pieceToMoveIdx int, isWhite bool) []int {
+func pawnPossiblesMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	isWhite := pieceColor == PieceColorWhite
 	normalMovesMap := blackPawnNormalMovesMap
 	capturesMovesMap := blackPawnCaptureMovesMap
 	if isWhite {
@@ -83,7 +162,7 @@ func pawnPossiblesMoves(pos *Position, pieceToMoveIdx int, isWhite bool) []int {
 	}
 
 	for _, pMove := range capturesMovesMap[pieceToMoveIdx] {
-		if pos.board[Cell(pMove)] != NoPiece {
+		if pos.board[Cell(pMove)] != NoPiece && pos.board[Cell(pMove)].toColor() != pieceColor {
 			moves = append(moves, pMove)
 		}
 	}
@@ -97,13 +176,75 @@ func pawnPossiblesMoves(pos *Position, pieceToMoveIdx int, isWhite bool) []int {
 	return moves
 }
 
+func knightPossiblesMove(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	legalMoves := []int{}
+	for _, pMove := range knightMoves[pieceToMoveIdx] {
+		if pos.board[Cell(pMove)] == NoPiece || pos.board[Cell(pMove)].toColor() != pieceColor {
+			legalMoves = append(legalMoves, pMove)
+		}
+	}
+
+	return legalMoves
+}
+
+func bishopPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	legalMoves := []int{}
+
+	for _, pMove := range diagonalSouthEastMoves[pieceToMoveIdx] {
+		if pos.board[Cell(pMove)].toColor() == pieceColor {
+			break
+		}
+		legalMoves = append(legalMoves, pMove)
+		if pos.board[Cell(pMove)] != NoPiece {
+			break
+		}
+	}
+
+	for _, pMove := range diagonalSouthWestMoves[pieceToMoveIdx] {
+		if pos.board[Cell(pMove)].toColor() == pieceColor {
+			break
+		}
+		legalMoves = append(legalMoves, pMove)
+		if pos.board[Cell(pMove)] != NoPiece {
+			break
+		}
+	}
+
+	for _, pMove := range diagonalNorthEastMoves[pieceToMoveIdx] {
+		if pos.board[Cell(pMove)].toColor() == pieceColor {
+			break
+		}
+		legalMoves = append(legalMoves, pMove)
+		if pos.board[Cell(pMove)] != NoPiece {
+			break
+		}
+	}
+
+	for _, pMove := range diagonalNorthWestMoves[pieceToMoveIdx] {
+		if pos.board[Cell(pMove)].toColor() == pieceColor {
+			break
+		}
+		legalMoves = append(legalMoves, pMove)
+		if pos.board[Cell(pMove)] != NoPiece {
+			break
+		}
+	}
+
+	return legalMoves
+}
+
 func (piece Piece) possibleMoves(pieceIdx int, pos *Position) []int {
-	if piece.toPieceType() == PieceTypePawn {
+	switch piece.toPieceType() {
+	case PieceTypePawn:
 		return pawnPossiblesMoves(
 			pos,
 			pieceIdx,
-			piece.toColor() == PieceColorWhite,
+			piece.toColor(),
 		)
+	case PieceTypeKnight:
+		return knightPossiblesMove(pos, pieceIdx, piece.toColor())
+	case PieceTypeBishop:
+		return bishopPossibleMoves(pos, pieceIdx, piece.toColor())
 	}
 
 	return []int{}
