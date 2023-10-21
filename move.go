@@ -8,10 +8,7 @@ var (
 	whitePawnCaptureMovesMap = make(MovesMap)
 	blackPawnCaptureMovesMap = make(MovesMap)
 	knightMoves              = make(MovesMap)
-	diagonalSouthEastMoves   = make(MovesMap)
-	diagonalSouthWestMoves   = make(MovesMap)
-	diagonalNorthEastMoves   = make(MovesMap)
-	diagonalNorthWestMoves   = make(MovesMap)
+	diagonalMoves            = make(map[int]MovesMap) // [direction][cellIdx] -> possiblesCellsIdx[]
 	linearMoves              = make(map[int]MovesMap) // [direction][cellIdx] -> possiblesCellsIdx[]
 )
 
@@ -34,17 +31,22 @@ func generateBaseMoves() {
 }
 
 func generateDiagonalSliderMoves() {
+	diagonalMoves[SouthEast] = make(MovesMap)
+	diagonalMoves[SouthWest] = make(MovesMap)
+	diagonalMoves[NorthEast] = make(MovesMap)
+	diagonalMoves[NorthWest] = make(MovesMap)
+
 	for i := 0; i < 64; i++ {
 		r, c := cellIdxToCoordinates(i)
 
 		inc := 1
 		for y := 1; r+y < 8; y++ {
 			if c+inc < 8 {
-				diagonalSouthEastMoves[i] = append(diagonalSouthEastMoves[i], i+(y*8)+inc)
+				diagonalMoves[SouthEast][i] = append(diagonalMoves[SouthEast][i], i+(y*8)+inc)
 			}
 
 			if c-inc >= 0 {
-				diagonalSouthWestMoves[i] = append(diagonalSouthWestMoves[i], i+(y*8)-inc)
+				diagonalMoves[SouthWest][i] = append(diagonalMoves[SouthWest][i], i+(y*8)-inc)
 			}
 
 			inc++
@@ -53,11 +55,11 @@ func generateDiagonalSliderMoves() {
 		inc = 1
 		for y := 1; r-y >= 0; y++ {
 			if c+inc < 8 {
-				diagonalNorthEastMoves[i] = append(diagonalNorthEastMoves[i], i-(y*8)+inc)
+				diagonalMoves[NorthEast][i] = append(diagonalMoves[NorthEast][i], i-(y*8)+inc)
 			}
 
 			if c-inc >= 0 {
-				diagonalNorthWestMoves[i] = append(diagonalNorthWestMoves[i], i-(y*8)-inc)
+				diagonalMoves[NorthWest][i] = append(diagonalMoves[NorthWest][i], i-(y*8)-inc)
 			}
 
 			inc++
@@ -237,12 +239,45 @@ func bishopPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []in
 	return diagonalSliderPossibleMoves(pos, pieceToMoveIdx, pieceColor)
 }
 
+func queenPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	return sliderPossibleMoves(
+		pos,
+		pieceToMoveIdx,
+		pieceColor,
+		[]int{North, South, West, East, SouthEast, SouthWest, NorthEast, NorthWest},
+	)
+}
+
 func linearSliderPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
-	possibleDirections := []int{North, South, West, East}
+	return sliderPossibleMoves(
+		pos,
+		pieceToMoveIdx,
+		pieceColor,
+		[]int{North, South, West, East},
+	)
+}
+
+func diagonalSliderPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	return sliderPossibleMoves(
+		pos,
+		pieceToMoveIdx,
+		pieceColor,
+		[]int{SouthEast, SouthWest, NorthEast, NorthWest},
+	)
+}
+
+func sliderPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int, possibleDirections []int) []int {
 	legalMoves := []int{}
 
 	for _, direction := range possibleDirections {
-		for _, pMove := range linearMoves[direction][pieceToMoveIdx] {
+		var directionMoves []int
+		if direction < 4 {
+			directionMoves = linearMoves[direction][pieceToMoveIdx]
+		} else {
+			directionMoves = diagonalMoves[direction][pieceToMoveIdx]
+		}
+
+		for _, pMove := range directionMoves {
 			if pos.board[Cell(pMove)].toColor() == pieceColor {
 				break
 			}
@@ -250,52 +285,6 @@ func linearSliderPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int
 			if pos.board[Cell(pMove)] != NoPiece {
 				break
 			}
-		}
-	}
-
-	return legalMoves
-}
-
-func diagonalSliderPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
-	legalMoves := []int{}
-
-	for _, pMove := range diagonalSouthEastMoves[pieceToMoveIdx] {
-		if pos.board[Cell(pMove)].toColor() == pieceColor {
-			break
-		}
-		legalMoves = append(legalMoves, pMove)
-		if pos.board[Cell(pMove)] != NoPiece {
-			break
-		}
-	}
-
-	for _, pMove := range diagonalSouthWestMoves[pieceToMoveIdx] {
-		if pos.board[Cell(pMove)].toColor() == pieceColor {
-			break
-		}
-		legalMoves = append(legalMoves, pMove)
-		if pos.board[Cell(pMove)] != NoPiece {
-			break
-		}
-	}
-
-	for _, pMove := range diagonalNorthEastMoves[pieceToMoveIdx] {
-		if pos.board[Cell(pMove)].toColor() == pieceColor {
-			break
-		}
-		legalMoves = append(legalMoves, pMove)
-		if pos.board[Cell(pMove)] != NoPiece {
-			break
-		}
-	}
-
-	for _, pMove := range diagonalNorthWestMoves[pieceToMoveIdx] {
-		if pos.board[Cell(pMove)].toColor() == pieceColor {
-			break
-		}
-		legalMoves = append(legalMoves, pMove)
-		if pos.board[Cell(pMove)] != NoPiece {
-			break
 		}
 	}
 
@@ -316,6 +305,8 @@ func (piece Piece) possibleMoves(pieceIdx int, pos *Position) []int {
 		return bishopPossibleMoves(pos, pieceIdx, piece.toColor())
 	case PieceTypeRook:
 		return rookPossibleMoves(pos, pieceIdx, piece.toColor())
+	case PieceTypeQueen:
+		return queenPossibleMoves(pos, pieceIdx, piece.toColor())
 	}
 
 	return []int{}
