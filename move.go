@@ -1,21 +1,36 @@
 package main
 
+type MovesMap map[int][]int
+
 var (
-	whitePawnNormalMovesMap  = make(map[int][]int)
-	blackPawnNormalMovesMap  = make(map[int][]int)
-	whitePawnCaptureMovesMap = make(map[int][]int)
-	blackPawnCaptureMovesMap = make(map[int][]int)
-	knightMoves              = make(map[int][]int)
-	diagonalSouthEastMoves   = make(map[int][]int)
-	diagonalSouthWestMoves   = make(map[int][]int)
-	diagonalNorthEastMoves   = make(map[int][]int)
-	diagonalNorthWestMoves   = make(map[int][]int)
+	whitePawnNormalMovesMap  = make(MovesMap)
+	blackPawnNormalMovesMap  = make(MovesMap)
+	whitePawnCaptureMovesMap = make(MovesMap)
+	blackPawnCaptureMovesMap = make(MovesMap)
+	knightMoves              = make(MovesMap)
+	diagonalSouthEastMoves   = make(MovesMap)
+	diagonalSouthWestMoves   = make(MovesMap)
+	diagonalNorthEastMoves   = make(MovesMap)
+	diagonalNorthWestMoves   = make(MovesMap)
+	linearMoves              = make(map[int]MovesMap) // [direction][cellIdx] -> possiblesCellsIdx[]
+)
+
+const ( // Move directions
+	North = iota
+	South
+	West
+	East
+	NorthWest
+	NorthEast
+	SouthWest
+	SouthEast
 )
 
 func generateBaseMoves() {
 	generatePawnMoves()
 	generateKnightMoves()
 	generateDiagonalSliderMoves()
+	generateLinearSliderMoves()
 }
 
 func generateDiagonalSliderMoves() {
@@ -46,6 +61,33 @@ func generateDiagonalSliderMoves() {
 			}
 
 			inc++
+		}
+	}
+}
+
+func generateLinearSliderMoves() {
+	linearMoves[North] = make(MovesMap)
+	linearMoves[South] = make(MovesMap)
+	linearMoves[West] = make(MovesMap)
+	linearMoves[East] = make(MovesMap)
+
+	for i := 0; i < 64; i++ {
+		r, c := cellIdxToCoordinates(i)
+
+		for y := 1; y+r < 8; y++ {
+			linearMoves[South][i] = append(linearMoves[South][i], i+y*8)
+		}
+
+		for y := 1; r-y >= 0; y++ {
+			linearMoves[North][i] = append(linearMoves[North][i], i-y*8)
+		}
+
+		for x := 1; x+c < 8; x++ {
+			linearMoves[East][i] = append(linearMoves[East][i], i+x)
+		}
+
+		for x := 1; c-x >= 0; x++ {
+			linearMoves[West][i] = append(linearMoves[West][i], i-x)
 		}
 	}
 }
@@ -176,6 +218,10 @@ func pawnPossiblesMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int
 	return moves
 }
 
+func rookPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	return linearSliderPossibleMoves(pos, pieceToMoveIdx, pieceColor)
+}
+
 func knightPossiblesMove(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
 	legalMoves := []int{}
 	for _, pMove := range knightMoves[pieceToMoveIdx] {
@@ -188,6 +234,29 @@ func knightPossiblesMove(pos *Position, pieceToMoveIdx int, pieceColor int) []in
 }
 
 func bishopPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	return diagonalSliderPossibleMoves(pos, pieceToMoveIdx, pieceColor)
+}
+
+func linearSliderPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
+	possibleDirections := []int{North, South, West, East}
+	legalMoves := []int{}
+
+	for _, direction := range possibleDirections {
+		for _, pMove := range linearMoves[direction][pieceToMoveIdx] {
+			if pos.board[Cell(pMove)].toColor() == pieceColor {
+				break
+			}
+			legalMoves = append(legalMoves, pMove)
+			if pos.board[Cell(pMove)] != NoPiece {
+				break
+			}
+		}
+	}
+
+	return legalMoves
+}
+
+func diagonalSliderPossibleMoves(pos *Position, pieceToMoveIdx int, pieceColor int) []int {
 	legalMoves := []int{}
 
 	for _, pMove := range diagonalSouthEastMoves[pieceToMoveIdx] {
@@ -245,6 +314,8 @@ func (piece Piece) possibleMoves(pieceIdx int, pos *Position) []int {
 		return knightPossiblesMove(pos, pieceIdx, piece.toColor())
 	case PieceTypeBishop:
 		return bishopPossibleMoves(pos, pieceIdx, piece.toColor())
+	case PieceTypeRook:
+		return rookPossibleMoves(pos, pieceIdx, piece.toColor())
 	}
 
 	return []int{}
